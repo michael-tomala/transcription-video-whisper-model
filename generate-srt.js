@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from "path";
 
 // Funkcja do konwersji czasu w sekundach na format SRT (HH:MM:SS,MS)
 function convertToSRTTime(seconds) {
@@ -15,7 +16,7 @@ function padZero(number, length = 2) {
 }
 
 // Funkcja do generowania pliku SRT na podstawie pliku transcription.json
-function generateSRT(filePath) {
+export default function generateSRT(filePath, type = 'segments') {
 
     if (!filePath) {
         console.error('Brak ścieżki do pliku JSON z transkrypcjami! Proszę podać ścieżkę jako argument.');
@@ -23,21 +24,15 @@ function generateSRT(filePath) {
     }
 
     // Wczytanie pliku transcription.json
-    fs.readFile(filePath, 'utf8', (err, data) => {
-        if (err) {
-            console.error('Error reading the file:', err);
-            return;
-        }
+    const data = fs.readFileSync('./' + filePath, 'utf8')
 
-        const transcriptionData = JSON.parse(data);
-        let srtContent = '';
-        let subtitleIndex = 2;
+    const transcriptionData = JSON.parse(data);
+    let srtContent = '';
+    let subtitleIndex = 1;
 
-        // Dodanie początku
-        srtContent += `1\n00:00:00,000 --> 00:00:00,100\nStart\n\n`;
-
-        // Generowanie treści pliku SRT
-        transcriptionData.forEach((entry) => {
+    // Generowanie treści pliku SRT
+    transcriptionData.forEach((entry) => {
+        if (type === 'words') {
             entry?.words.forEach((word) => {
                 const startTime = convertToSRTTime(word.start);  // Start czas od pierwszego słowa
                 const endTime = convertToSRTTime(word.end);  // End czas od ostatniego słowa
@@ -46,19 +41,19 @@ function generateSRT(filePath) {
                 srtContent += `${subtitleIndex}\n${startTime} --> ${endTime}\n${word.word}\n\n`;
                 subtitleIndex++;
             })
-        });
+        } else {
+            entry?.segments.forEach((segment) => {
+                const startTime = convertToSRTTime(segment.start);  // Start czas od pierwszego słowa
+                const endTime = convertToSRTTime(segment.end);  // End czas od ostatniego słowa
 
-        // Zapisanie pliku SRT
-        fs.writeFile('transcription.srt', srtContent, (err) => {
-            if (err) {
-                console.error('Error writing SRT file:', err);
-            } else {
-                console.log('SRT file has been saved!');
-            }
-        });
+                // Dodanie do treści SRT
+                srtContent += `${subtitleIndex}\n${startTime} --> ${endTime}\n${segment.text.trim()}\n\n`;
+                subtitleIndex++;
+            })
+        }
     });
-}
 
-// Uruchomienie funkcji
-const filePath = process.argv[2] || './transcription.json';  // Ścieżka do pliku transcription.json
-generateSRT(filePath);
+    // Zapisanie pliku SRT
+    fs.writeFileSync(path.dirname(filePath) + '/transcription-' + type + '.srt', srtContent);
+    console.log(`Transkrypcja do pliku ${path.dirname(filePath) + '/transcription-' + type + '.srt'} została zapisana.`);
+}

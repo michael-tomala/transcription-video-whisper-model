@@ -4,6 +4,9 @@ import splitAudioFile from "./lib/split-audio-file.js";
 import dotenv from 'dotenv';
 import transcribeAudio from "./lib/transcribe-audio.js";
 import fs from 'fs';
+import path from "path";
+import generateReformatedTranscription from "./reformat-transcription.js";
+import generateSRT from "./generate-srt.js";
 // Ładujemy zmienne środowiskowe z pliku .env
 dotenv.config();
 
@@ -18,14 +21,16 @@ dotenv.config();
         console.error('Brak klucza OPENAI_API_KEY w pliku .env');
         process.exit(1); // Zakończ aplikację, jeśli ścieżka nie została podana
     }
+    const reformatMinWordsDuration = process.argv[3] || 500; // Pierwszy argument to ścieżka do pliku wideo
 
-    const audioPath = './.tmp/output_audio.mp3'; // Ścieżka do pliku audio
+    const sourceFileName = 'output/' + path.basename(videoPath).replace(/\.[^/.]+$/, "").toLowerCase().replace(' ', '')
+    const audioPath = './' + sourceFileName + '/audio.mp3'; // Ścieżka do pliku audio
 
     try {
-        await fs.rmSync('.tmp', {recursive: true})
+        await fs.rmSync(sourceFileName, {recursive: true})
     } catch (err) {
     }
-    await fs.mkdirSync('.tmp')
+    await fs.mkdirSync(sourceFileName)
 
     try {
 
@@ -52,8 +57,15 @@ dotenv.config();
         console.log(combinedTranscription);
 
         // Zapis transkrypcji do pliku
-        fs.writeFileSync('transcription.json', JSON.stringify(transcriptions, null, 2));
-        console.log('Transkrypcja zapisana w transcription.json');
+        fs.writeFileSync(sourceFileName + '/transcription.json', JSON.stringify(transcriptions, null, 2));
+        console.log(`Transkrypcja zapisana w ${sourceFileName}/transcription.json`);
+
+        // Przetwarzamy słowa zgodnie z wymaganiami minimalnej długości
+        await generateReformatedTranscription(sourceFileName + '/transcription.json', reformatMinWordsDuration)
+
+        await generateSRT(sourceFileName + '/transcription-reformatted.json', 'words');
+        await generateSRT(sourceFileName + '/transcription-reformatted.json', 'segments');
+
     } catch (error) {
         console.error('Wystąpił błąd:', error);
     }
