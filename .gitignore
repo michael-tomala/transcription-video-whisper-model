@@ -1,1 +1,7 @@
 .env
+node_modules
+.tmp
+.idea
+transcription.json
+transcription.srt
+.env
