@@ -12,8 +12,8 @@ This project uses OpenAI's Whisper model to generate transcription for videos an
 1. Clone this repository:
 
 ```bash
-git clone https://github.com/your-repo/transcription-whisper.git
-cd transcription-whisper
+git clone git@github.com:michael-tomala/transcription-video-whisper-model.git
+cd transcription-video-whisper-model
 ```
 
 2. Install dependencies:
