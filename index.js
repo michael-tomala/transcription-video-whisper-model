@@ -5,8 +5,9 @@ import dotenv from 'dotenv';
 import transcribeAudio from "./lib/transcribe-audio.js";
 import fs from 'fs';
 import path from "path";
-import generateReformatedTranscription from "./reformat-transcription.js";
-import generateSRT from "./generate-srt.js";
+import generateReformatedTranscription from "./lib/reformat-transcription.js";
+import generateSRT from "./lib/generate-srt.js";
+
 // Ładujemy zmienne środowiskowe z pliku .env
 dotenv.config();
 
