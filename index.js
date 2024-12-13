@@ -54,9 +54,9 @@ dotenv.config();
         const combinedTranscription = combineTranscriptions(transcriptions);
 
         console.log('Transkrypcja (verbose_json):');
-        console.log(combinedTranscription);
+        console.log(combinedTranscription.text);
 
-        await fs.writeFileSync(outputDir + '/transcription.json', JSON.stringify(transcriptions, null, 2));
+        await fs.writeFileSync(outputDir + '/transcription.json', JSON.stringify(combinedTranscription, null, 2));
         console.log(`Transkrypcja zapisana w ${outputDir}/transcription.json`);
 
         await generateReformatedTranscription(outputDir, reformatMinWordsDuration)
