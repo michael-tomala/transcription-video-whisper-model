@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from "path";
 import generateReformatedTranscription from "./lib/reformat-transcription.js";
 import generateSRT from "./lib/generate-srt.js";
+import {downloadAudioFromYoutube, extractYouTubeId, isYoutubeUrl} from "./lib/youtube.js";
 
 // Ładujemy zmienne środowiskowe z pliku .env
 dotenv.config();
@@ -26,7 +27,9 @@ dotenv.config();
 
     const reformatMinWordsDuration = process.argv[3] || 500; // Pierwszy argument to ścieżka do pliku wideo
 
-    const outputDir = 'output/' + path.basename(videoPath).replace(/\.[^/.]+$/, "").toLowerCase().replace(' ', '')
+    let dirname = isYoutubeUrl(videoPath) ? extractYouTubeId(videoPath) : path.basename(videoPath);
+
+    const outputDir = path.join('output', dirname.replace(/\.[^/.]+$/, "").toLowerCase().replace(' ', ''))
 
     try {
         await fs.rmSync(outputDir, {recursive: true})
@@ -36,8 +39,14 @@ dotenv.config();
 
     try {
 
-        console.log('Wyodrębnianie audio...');
-        await extractAudio(videoPath, outputDir);
+        if (isYoutubeUrl(videoPath)) {
+            console.log(`Pobieranie audio z URL: ${videoPath}`);
+            await downloadAudioFromYoutube(videoPath, outputDir)
+
+        } else {
+            console.log('Wyodrębnianie audio...');
+            await extractAudio(videoPath, outputDir);
+        }
 
         console.log('Sprawdzanie rozmiaru pliku audio...');
         const chunks = await splitAudioFile(outputDir);
