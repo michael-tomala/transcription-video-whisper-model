@@ -31,6 +31,9 @@ import {
 // Ładujemy zmienne środowiskowe z pliku .env
 dotenv.config();
 
+// Ostrożne przybliżenie 224 tokenów dla polskiego tekstu.
+const PROMPT_WARN_LENGTH = 800;
+
 const USAGE = `
 Użycie: node index.js <plik wideo | URL YouTube> [opcje]
 
@@ -40,6 +43,7 @@ Użycie: node index.js <plik wideo | URL YouTube> [opcje]
   --vad-model <ścieżka>      model Silero VAD
   --language <kod>           język nagrania (domyślnie pl)
   --threads <n>              liczba wątków whisper.cpp (domyślnie 8)
+  --prompt <tekst>           nazwy własne/żargon podpowiadane modelowi (oba backendy)
   --min-words-duration <ms>  minimalny czas wyświetlania frazy w SRT (domyślnie 500)
   --output-dir <ścieżka>     katalog wyniku (domyślnie output/<nazwa>)
   --job                      uruchom w tle, wypisz jobId na stdout i zakończ
@@ -58,6 +62,7 @@ function parseOptions(argv) {
             'vad-model': {type: 'string'},
             language: {type: 'string'},
             threads: {type: 'string'},
+            prompt: {type: 'string'},
             'min-words-duration': {type: 'string'},
             'output-dir': {type: 'string'},
             job: {type: 'boolean'},
@@ -83,6 +88,13 @@ function parseOptions(argv) {
         return parsed;
     };
 
+    // whisper.cpp przycina initial prompt do n_text_ctx/2 = 224 tokenów, API whisper-1 tak samo.
+    // Nadmiar jest obcinany po cichu, więc bez ostrzeżenia wygląda to jak "słownik nie zadziałał".
+    const prompt = values.prompt || undefined;
+    if (prompt && prompt.length > PROMPT_WARN_LENGTH) {
+        console.warn(`Uwaga: --prompt ma ${prompt.length} znaków; Whisper użyje tylko pierwszych ~224 tokenów.`);
+    }
+
     return {
         help: Boolean(values.help),
         input: positionals[0],
@@ -93,6 +105,7 @@ function parseOptions(argv) {
         vad: values['no-vad'] ? false : (values.vad ?? true),
         vadModelPath: resolveVadModelPath(values['vad-model']),
         language: values.language || 'pl',
+        prompt,
         threads: number(values.threads, 8, '--threads'),
         outputDir: values['output-dir'],
         job: Boolean(values.job),

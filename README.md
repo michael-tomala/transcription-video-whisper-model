@@ -74,6 +74,7 @@ node index.js 'https://youtu.be/VIDEO_ID' --backend local
 --vad / --no-vad           cut silence before transcription (default: on for local)
 --vad-model <path>         Silero VAD model
 --language <code>          spoken language (default: pl)
+--prompt <text>            proper nouns / jargon to hint to the model (both backends)
 --threads <n>              whisper.cpp threads (default: 8)
 --min-words-duration <ms>  minimum on-screen duration per phrase in SRT (default: 500)
 --output-dir <path>        output directory (default: output/<name>)
@@ -83,6 +84,24 @@ node index.js 'https://youtu.be/VIDEO_ID' --backend local
 
 The second positional argument is still accepted as `--min-words-duration`, so
 `node index.js ./video.mp4 800` keeps working.
+
+### Hinting proper nouns
+
+Whisper mangles names, domains and jargon it has no context for — `claude4spec.inharness.ai`
+comes back as `www.cloth4spec.in.harness.ai`. Pass the terms as an initial prompt and the
+decoder gets them in context before it hears a word:
+
+```bash
+node index.js ./video.mov --backend local \
+  --prompt "claude4spec.inharness.ai, Claude Code, NPM, MCP"
+```
+
+Both backends accept it: the local one forwards it to `whisper-cli --prompt`, the OpenAI one
+sends it as the API's `prompt` parameter (repeated for every <20 MB chunk, as OpenAI
+recommends). Whisper truncates the prompt to 224 tokens silently, so keep it to the terms that
+actually matter — the CLI warns when the text is long enough to risk being cut. A term set in a
+natural sentence ("Wchodzimy na stronę claude4spec.inharness.ai.") sometimes lands better than
+a bare comma-separated list.
 
 ## Output
 
